@@ -1,53 +1,41 @@
 # %%
 import torch
 import torch.nn as nn
-import torch.optim as optim
 import torch.nn.functional as F
-import numpy as np
 from torch.utils.data import Dataset,DataLoader
-from torchvision.transforms import ToTensor
 import torchvision.models as models
 import os
-import matplotlib.pyplot as plt
 from torch.utils.data import random_split
 from PIL import Image
 import time
 import torchvision.transforms as transforms
+from pytorch_msssim import ssim
 
 # %% [markdown]
 # # Sobel SSIM Loss Definition #
 
 # %%
+# Calculates the Gradient magnitude of the passed image and returns it, does so by performing a directional sobel convolution in the x and y direction and then using those as inputs for the gradient magnitude function
 def sobel_filter(image):
 
+    # setup the kernals for direction sobel
     sobel_x = torch.tensor([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]], dtype=torch.float32).unsqueeze(0).unsqueeze(0)
     sobel_y = torch.tensor([[-1, -2, -1], [0, 0, 0], [1, 2, 1]], dtype=torch.float32).unsqueeze(0).unsqueeze(0)
 
-    channels = image.size(1)  # Number of channels
+    # resize to cover all channels of the passed image
+    channels = image.size(1)
     sobel_x = sobel_x.repeat(channels, 1, 1, 1).to(image.device)
     sobel_y = sobel_y.repeat(channels, 1, 1, 1).to(image.device)
 
+    # apply sobel in x and y direction
     edges_x = F.conv2d(image, sobel_x, padding=1, groups=channels)
     edges_y = F.conv2d(image, sobel_y, padding=1, groups=channels)
 
-    edges = torch.sqrt(edges_x ** 2 + edges_y ** 2 + 1e-6)  # Avoid NaNs
-    edges = (edges - edges.min()) / (edges.max() - edges.min() + 1e-6)  # Normalize to [0, 1]
+    edges = torch.sqrt(edges_x ** 2 + edges_y ** 2 + 1e-6)
+    
+    # normalize the gradient magnitude and return
+    edges = (edges - edges.min()) / (edges.max() - edges.min() + 1e-6) 
     return edges
-
-
-
-def ssim_loss(pred, target, C1=0.01 ** 2, C2=0.03 ** 2):
-
-    mu_pred = F.avg_pool2d(pred, kernel_size=3, stride=1, padding=1)
-    mu_target = F.avg_pool2d(target, kernel_size=3, stride=1, padding=1)
-    sigma_pred = F.avg_pool2d(pred ** 2, kernel_size=3, stride=1, padding=1) - mu_pred ** 2
-    sigma_target = F.avg_pool2d(target ** 2, kernel_size=3, stride=1, padding=1) - mu_target ** 2
-    sigma_pred_target = F.avg_pool2d(pred * target, kernel_size=3, stride=1, padding=1) - mu_pred * mu_target
-
-    ssim_map = ((2 * mu_pred * mu_target + C1) * (2 * sigma_pred_target + C2)) / (
-        (mu_pred ** 2 + mu_target ** 2 + C1) * (sigma_pred + sigma_target + C2)
-    )
-    return 1 - ssim_map.mean() 
 
 
 
@@ -55,10 +43,14 @@ def ssim_loss(pred, target, C1=0.01 ** 2, C2=0.03 ** 2):
 # # Data Loader #
 
 # %%
+# Dataset class to gice to the dataloader to load our style and content images into the model
 class StyleContentDataset(Dataset):
     def __init__(self, content_dir, style_dir):
+        # Get the path to all image files in the content folder
         self.content_images = [os.path.join(content_dir, img) for img in os.listdir(content_dir) if img.endswith(('.jpg', '.png', '.jpeg'))]
         
+
+        # To my utter shagrin, the style images are in subfolders, so we have to go through all of them to get each one's path
         self.style_images = []
         for subdir in os.listdir(style_dir):
             subdir_path = os.path.join(style_dir, subdir)
@@ -66,23 +58,30 @@ class StyleContentDataset(Dataset):
                 style_images_in_subdir = [os.path.join(subdir_path, img) for img in os.listdir(subdir_path) if img.endswith(('.jpg', '.png', '.jpeg'))]
                 self.style_images.extend(style_images_in_subdir)
         
+        # transforms to perform on the image when being loaded into the model
         self.transform = transforms.Compose([
+
             transforms.Resize((512, 512)),
+            # random crop prevents the model from overfitting
             transforms.RandomCrop((256,256)),
-            transforms.ToTensor()  # Converts to a tensor and scales to [0, 1]
+            transforms.ToTensor()
         ])
 
-
+    # I'm not completely sure what the best practice is, because technically its two datasets of different sizes in one loader, but this shouldn't matter for now because we're using a very small subset 
     def __len__(self):
         return max(len(self.content_images), len(self.style_images))
 
+    # Return the ith image pair
     def __getitem__(self, idx):
+        # Get the corresponding image path
         content_img_path = self.content_images[idx % len(self.content_images)]
         style_img_path = self.style_images[idx % len(self.style_images)]
         
+        # Retreive the image as a PIL
         content_image = Image.open(content_img_path).convert("RGB")
         style_image = Image.open(style_img_path).convert("RGB")
 
+        # Transform the image to be returned
         content_image = self.transform(content_image)
         style_image = self.transform(style_image)
 
@@ -97,23 +96,34 @@ class StyleContentDataset(Dataset):
 # # Data Sets #
 
 # %%
+# Dataset paths, relative to this folder
 coco_path = "DataSets/unlabeled2017/"
 wikiart_path = "DataSets/wikiart/"
 
-
+# Create the custom dataset
 Dataset = StyleContentDataset(coco_path,wikiart_path)
+
+# Split is pretty arbitrary, as we wont use nearly all of the images in either the test or train split
 train_dataset ,test_dataset= random_split(Dataset,[0.8,0.2])
 
+# Create the train and test dataloaders
 train_loader = DataLoader(train_dataset,batch_size=1,shuffle=True)
 test_loader = DataLoader(test_dataset,batch_size=1,shuffle=False)
-print(len(Dataset))
-
-
 
 # %% [markdown]
 # # AdaIN #
 
 # %%
+'''
+The code for AdaIN was borrowed from this individual, who re-wrote the original code in python (was Lua)
+https://github.com/naoto0804/pytorch-AdaIN/blob/master/function.py
+
+Original: https://github.com/xunhuang1995/AdaIN-style/blob/master/lib/AdaptiveInstanceNormalization.lua
+
+When I say "Original," I'm reffering to the code that the authors of the paper that this is based of wrote for their paper
+'''
+
+
 def calc_mean_std(feat, eps=1e-5):
     # eps is a small value added to the variance to avoid divide-by-zero.
     size = feat.size()
@@ -132,7 +142,6 @@ def mean_variance_norm(feat):
 
 
 
-
 def AdaIn(content_feat, style_feat):
     assert (content_feat.size()[:2] == style_feat.size()[:2])
     size = content_feat.size()
@@ -147,28 +156,17 @@ def AdaIn(content_feat, style_feat):
 # %% [markdown]
 # # Model Definitons #
 
-# %%
-class FixedConv(nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size=1, stride=1, padding=0):
-        super(FixedConv, self).__init__()
-        self.conv = nn.Conv2d(in_channels, out_channels, kernel_size, stride=stride, padding=padding, bias=False)
-        
-        # Initialize the kernel to an identity-like transformation
-        if in_channels == out_channels and kernel_size == 1:
-            nn.init.eye_(self.conv.weight.view(out_channels, in_channels))  # Identity initialization for 1x1
-        else:
-            nn.init.xavier_uniform_(self.conv.weight)  # Minimal modification if sizes differ
-
-        # Freeze weights to prevent updates
-        self.conv.weight.requires_grad = False
-
-    def forward(self, x):
-        return self.conv(x)
-
 # %% [markdown]
 # # CBAM #
 
 # %%
+'''
+    This code for CBAM was borrowed from this github:https://github.com/Jongchan/attention-module/blob/c06383c514ab0032d044cc6fcd8c8207ea222ea7/MODELS/cbam.py#L84
+
+    It's the official implementation from the researchers who first proposed it
+'''
+
+
 class BasicConv(nn.Module):
     def __init__(self, in_planes, out_planes, kernel_size, stride=1, padding=0, dilation=1, groups=1, relu=True, bn=False, bias=False):
         super(BasicConv, self).__init__()
@@ -260,50 +258,6 @@ class CBAM(nn.Module):
             x_out = self.SpatialGate(x_out)
         return x_out
 
-# %%
-def visualize_adain_output(fused_feat, epoch, save_dir="visualizations"):
-    """
-    Visualizes and saves the AdaIN feature map for a given epoch.
-    """
-    os.makedirs(save_dir, exist_ok=True)  # Create directory to save visualizations
-
-    # Take the first batch's fused features for visualization
-    # Reduce channels for visualization (e.g., take the mean across channels)
-    feature_map = fused_feat[0].mean(dim=0).cpu().detach().numpy()
-
-    # Normalize the feature map to [0, 1] for visualization
-    feature_map = (feature_map - feature_map.min()) / (feature_map.max() - feature_map.min())
-
-    # Plot and save
-    plt.figure(figsize=(6, 6))
-    plt.imshow(feature_map, cmap="viridis")
-    plt.colorbar()
-    plt.title(f"AdaIN Output - Epoch {epoch}")
-    plt.axis("off")
-    plt.savefig(os.path.join(save_dir, f"adain_epoch_{epoch}.png"))
-    plt.close()
-def visualize_adain_input(feat, epoch, save_dir="visualizations2"):
-    """
-    Visualizes and saves the AdaIN feature map for a given epoch.
-    """
-    os.makedirs(save_dir, exist_ok=True)  # Create directory to save visualizations
-
-    # Take the first batch's fused features for visualization
-    # Reduce channels for visualization (e.g., take the mean across channels)
-    feature_map = feat[0].mean(dim=0).cpu().detach().numpy()
-
-    # Normalize the feature map to [0, 1] for visualization
-    feature_map = (feature_map - feature_map.min()) / (feature_map.max() - feature_map.min())
-
-    # Plot and save
-    plt.figure(figsize=(6, 6))
-    plt.imshow(feature_map, cmap="viridis")
-    plt.colorbar()
-    plt.title(f"AdaIN Output - Epoch {epoch}")
-    plt.axis("off")
-    plt.savefig(os.path.join(save_dir, f"adain_epoch_{epoch}.png"))
-    plt.close()
-
 # %% [markdown]
 # # Encoder Decoder #
 
@@ -312,34 +266,27 @@ def visualize_adain_input(feat, epoch, save_dir="visualizations2"):
 class Encoder(nn.Module):
     def __init__(self):
         super(Encoder, self).__init__()
+
+        # Get the pretrained vgg19 model
         vgg = models.vgg19(pretrained=True).features
 
         # Define layers to extract features at specific layers
-        self.model = nn.Sequential(*[vgg[i] for i in range(len(vgg))])  # Up to ReLU5_1
+        self.model = nn.Sequential(*[vgg[i] for i in range(len(vgg))])  
         
-        #freeze weights
+        # Freeze weights so we don't change anything we didn't mean to 
         for param in self.model.parameters():
             param.requires_grad = False
 
-       # 1: 1, 2: 6, 3: 11, 4:20, 5: 29
+        # These need to be calculated seperatly, as for some loss calculation tasks we care about the higher level feature maps
         self.relu1_1 = self.model[:2]
         self.relu2_1 = self.model[2:7]
         self.relu3_1 = self.model[7:12]
         self.relu4_1 = self.model[12:21]
         self.relu5_1 = self.model[21:28]
 
+    # Generate feature maps, X is the input image, returns relu1_1 - relu4_1 feature maps
     def forward(self, x):
-        
 
-        '''
-        previously we were going to use relu3-5, however upon adaptation to teh AdaIN paper we will use 1-4
-        # Extract features at each specific layer
-        feat3_1 = self.model[:12](x)  # Feature map after relu3_1
-        feat4_1 = self.model[12:21](feat3_1)  # Feature map after relu4_1
-        feat5_1 = self.model[21:28](feat4_1)  # Feature map after relu5_1
-
-        return feat3_1, feat4_1, feat5_1
-        '''
         feat1_1 = self.relu1_1(x)
         feat2_1 = self.relu2_1(feat1_1)
         feat3_1 = self.relu3_1(feat2_1)
@@ -347,124 +294,114 @@ class Encoder(nn.Module):
 
         return feat1_1,feat2_1,feat3_1,feat4_1
 
+# Custom decoder model, takes the processed feature map and reconstructs it back to the original image space as it goes along
 class Decoder(nn.Module):
     def __init__(self):
         super(Decoder, self).__init__()
 
-        # Decoder mirrors the encoder, progressively upsampling
+        # Decoder mirrors the encoder, upsampling as it passes through each layer
         self.deconv_relu4_1 = nn.Sequential(
-            nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1),  # Refine
+            nn.Conv2d(512, 512, kernel_size=3, stride=1, padding=1),
             nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(512, 256, kernel_size=3, stride=2, padding=1, output_padding=1)  # Upsample: 32 -> 64
+            nn.ConvTranspose2d(512, 256, kernel_size=3, stride=2, padding=1, output_padding=1)  
         )
         self.deconv_relu3_1 = nn.Sequential(
-            nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1),  # Refine
+            nn.Conv2d(256, 256, kernel_size=3, stride=1, padding=1),
             nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(256, 128, kernel_size=3, stride=2, padding=1, output_padding=1)  # Upsample: 64 -> 128
+            nn.ConvTranspose2d(256, 128, kernel_size=3, stride=2, padding=1, output_padding=1) 
         )
         self.deconv_relu2_1 = nn.Sequential(
-            nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1),  # Refine
+            nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1), 
             nn.ReLU(inplace=True),
-            nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, padding=1, output_padding=1)  # Upsample: 128 -> 256
+            nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, padding=1, output_padding=1)  
         )
         self.deconv_relu1_1 = nn.Sequential(
-            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1),  # Refine
+            nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1), 
             nn.ReLU(inplace=True),
         )
         self.final = nn.Sequential(
-            nn.Conv2d(64, 3, kernel_size=3, stride=1, padding=1),  # Final RGB output
-            nn.Sigmoid()  # Scale pixel values to [0, 1]
+            nn.Conv2d(64, 3, kernel_size=3, stride=1, padding=1),  
+            nn.Sigmoid()  
         )
 
     def forward(self, feat4_1):
-        """
-        Reverse the feature maps progressively through the decoder.
-        """
-        x = self.deconv_relu4_1(feat4_1)  # 32 -> 64
-        x = self.deconv_relu3_1(x)       # 64 -> 128
-        x = self.deconv_relu2_1(x)       # 128 -> 256
-        x = self.deconv_relu1_1(x)       # Refinement
-        output = self.final(x)           # Final RGB image
+    
+        #Reverse the feature maps through the decoder, output is the finalized image
+    
+        x = self.deconv_relu4_1(feat4_1)  
+        x = self.deconv_relu3_1(x)        
+        x = self.deconv_relu2_1(x)       
+        x = self.deconv_relu1_1(x)        
+        output = self.final(x)          
         return output
 
 
 
 
     
-# put the models together into a single model
+# Put the models together into a single model
 class StyleTransferModel(nn.Module):
     def __init__(self):
         super(StyleTransferModel, self).__init__()
 
-        '''
-            We need a lot of models to process the content image,
-            each layer output of the encoded content will be passed through
-            its own attention network, along with their corresponding style layer
-        '''
         self.encoder = Encoder().eval()
         self.cbam = CBAM(512)
         self.decoder = Decoder() 
+
+        #alpha can be altered to adjust style application strength post training (0-1)
         self.alpha = 1.0
 
-        #convolutional operations
-        #self.conv1x1_3 = nn.Conv2d(256, 256, kernel_size=1)
-        #self.conv1x1_45 = nn.Conv2d(512, 512, kernel_size=1)
-        
 
-        #self.conv3x3 = nn.Conv2d(256,256,kernel_size=3)  
-
-
-
+    # Process the content and style images
     def forward(self, content, style):
 
         # Pass content and style through encoder to get  feature maps
         content_feat1_1, content_feat2_1, content_feat3_1,content_feat4_1 = self.encoder(content)
         style_feat1_1, style_feat2_1, style_feat3_1, style_feat4_1 = self.encoder(style)
 
-
+        # Place these in lists so we can access them easily later
         content_feats = [content_feat1_1, content_feat2_1, content_feat3_1,content_feat4_1]
-        style_feats = [style_feat1_1, style_feat2_1, style_feat3_1, style_feat4_1 ]
-        #print("Encoded")
-
-
-
+        style_feats = [style_feat1_1, style_feat2_1, style_feat3_1, style_feat4_1]
 
         # Apply CBAM, add the out put back into the original for the skip connection
-        spactial_attention4_1 = self.cbam(content_feat4_1)
+        attention4_1 = self.cbam(content_feat4_1)
 
-        attention_boosted_4_1 = content_feat4_1+spactial_attention4_1
+        # Skip connection
+        attention_boosted_4_1 = content_feat4_1+attention4_1
 
-
-
-
-
-        # Perform adaptive instancenormalization with AdaIN to fuse style into content
+        # Perform adaptive instance normalization with to fuse style into content
         fused_feat4_1 = AdaIn(attention_boosted_4_1,style_feat4_1)
 
         # Just scales the degree of which the style is applied, if one it remains the same
         fused_feat4_1 = self.alpha * fused_feat4_1 + (1 - self.alpha) * content_feat4_1
-
-
     
 
-        #print("Generating")
+        # decode the image
         generated_image = self.decoder(fused_feat4_1)
- 
         
         return generated_image,style_feats,content_feats
 
     
-# Custom Loss Class
+# Custom Loss Class, will be used for both model cases, but the experiment with no ssim will set ssim lambda to 0
+
+'''
+The code for the style and content loss was borrowed from this individual, who re-wrote the original code in python (was Lua)
+https://github.com/naoto0804/pytorch-AdaIN/blob/master/net.py
+
+Original: https://github.com/xunhuang1995/AdaIN-style/blob/master/lib/ContentLossModule.lua
+
+Specifically, the code for calc_content_loss and calc_style_loss were used
+'''
 
 class StyleTransferLoss(nn.Module):
-    def __init__(self, vgg_encoder, lambda_c=1, lambda_s=10, lambda_ssim=1):
+    def __init__(self, vgg_encoder, lambda_c=1, lambda_s=4, lambda_ssim=7):
 
         super(StyleTransferLoss, self).__init__()
-        self.vgg_encoder = vgg_encoder  # Pre-trained VGG encoder
+        self.vgg_encoder = vgg_encoder 
         self.lambda_c = lambda_c
         self.lambda_s = lambda_s
         self.lambda_ssim = lambda_ssim
-        self.mse_loss = nn.MSELoss()    # Mean Squared Error loss
+        self.mse_loss = nn.MSELoss()   
 
     def calc_content_loss(self, input, target):
         # MSE loss for content preservation
@@ -478,24 +415,17 @@ class StyleTransferLoss(nn.Module):
         target_mean, target_std = calc_mean_std(target)
         return self.mse_loss(input_mean, target_mean) + self.mse_loss(input_std, target_std)
 
+    # Actual loss calcualtion, takes the generated image, as well as the content image, and the feature maps for content and style
     def forward(self, generated_image, content,content_feats, style_feats):
-        """
-        Args:
-            generated_image (torch.Tensor): The stylized image.
-            content_feats (list of torch.Tensor): Features from the content image.
-            style_feats (list of torch.Tensor): Features from the style image.
 
-        Returns:
-            total_loss: Weighted combination of content, style, and SSIM losses.
-        """
-        # Extract features from the generated image using VGG encoder
+        # encode the generated image for loss calculation
         gen_feats = self.vgg_encoder(generated_image)
 
         
-        # Calculate content loss (last feature map for structure preservation)
+        # calculate content loss (last feature map for structure preservation)
         content_loss = self.calc_content_loss(gen_feats[-1], content_feats[-1])
         
-        # Calculate style loss (mean and variance alignment for each layer)
+        # calculate style loss (mean and variance alignment for each layer)
         style_loss = 0
         for gen_feat, style_feat in zip(gen_feats, style_feats):
             style_loss += self.calc_style_loss(gen_feat, style_feat)
@@ -503,8 +433,10 @@ class StyleTransferLoss(nn.Module):
         # Sobel-SSIM edge loss
         sobel_gen = sobel_filter(generated_image)
         sobel_content = sobel_filter(content)
-        edge_loss = ssim_loss(sobel_gen, sobel_content)
-        
+
+        edge_loss = 1 - ssim(sobel_gen, sobel_content, data_range=1.0, size_average=True)
+
+
         # Combine the losses with weights
         total_loss = (self.lambda_c * content_loss +
                       self.lambda_s * style_loss +
@@ -516,58 +448,61 @@ class StyleTransferLoss(nn.Module):
 # # Train Model #
 
 # %%
+
+# trains the model for a set number of epcochs
 def train_models(model,criterion,dataloader,optimizer,scheduler,device):
 
-    epochs = 40
+    epochs = 100
 
     model.train()
     count = 0
 
+
+    # Run for X number of epochs
     for epoch in range(epochs):
         count = 0
         start_time = time.time()
         for content, style in dataloader:
 
+            # Send images to whatever device you passed
             content = content.to(device)
             style = style.to(device)
 
             optimizer.zero_grad()
             
+            # Get the generated image and the feature maps from the model
             generated_image,style_feat,content_feat = model(content,style)
 
             # Calculate loss
-            loss,edge_l,style_l = criterion(generated_image,content,content_feat,style_feat)
+            loss,_,_ = criterion(generated_image,content,content_feat,style_feat)
           
             # Backpropagate and update weights
             loss.backward()
             optimizer.step()
             count +=1 
+
+            # Used for visualizing where in the epoch the model is at
             print(count,end='\r')
 
-            #only look at the first X number of training examples, it should be random, as the training loader shuffles the data on initilization
+            # Only look at the first X number of training examples, it should be random, as the training loader shuffles the data on initilization
             if count == 7000:
-                print(f'Edge{edge_l} Style{style_l}')
                 break
-            '''
-            if count == 1:
-                visualize_adain_output(fused_5_1,epoch+1)
-                visualize_adain_input(content_feat[-1],epoch+1)
-            '''
+
         scheduler.step()
 
 
-
+        # For my sanity, prints out the epoch and how long it took to run
         print(f"Epoch {epoch + 1}, Loss: {loss.item()}")
         print(f"Time: {(time.time()-start_time)/60} Minutes")
 
 
 # %%
+# get gpu if available
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
-
 
 model = StyleTransferModel()
 
+#make sure we dont update the encoder
 for param in model.encoder.model.parameters():
     assert param.requires_grad == False
 
@@ -575,35 +510,32 @@ criterion = StyleTransferLoss(model.encoder)
 model.to(device)
 criterion.to(device)
 
-# The decoder is what applies the arbitrary style and reconstructs the image
+# Training options
 optimizer = torch.optim.Adam(model.parameters(), lr=0.0001,weight_decay=1e-4)
 scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
 
+# send model to be trained
 train_models(model,criterion,train_loader,optimizer,scheduler,device)
 
 # %%
 model.eval()
-print(type(test_dataset.__getitem__(0)[0]))
 
-'''
-model = StyleTransferModel()
-model.load_state_dict(torch.load("cbam_AdaIN_Vanillia1.pth")["model_state_dict"])
-model.to(device)
-model.eval()
-'''
-# Extract content and style features
-with torch.no_grad():  # Disable gradient calculation for faster inference
+
+# Visual Evaluation of the model
+with torch.no_grad(): 
     i = 0
     for content,style in test_loader:
         stylized_image = model(content.to(device),style.to(device))
         i +=1
-        if (i <= 100):
+
+        # Quick and dirty way to look at the ith inferenced image, not great but its nice for quickly evaluating model performance post training
+        if (i <= 3):
             continue
-        # Convert to PIL image for saving or displaying
+        # display as a PIL
         stylized_image = transforms.ToPILImage()(stylized_image[0][0])
         content_im = transforms.ToPILImage()(style[0])
         style_im = transforms.ToPILImage()(content[0])
-        # Display or save the image
+
         
         stylized_image.show()
         content_im.show()
@@ -616,11 +548,11 @@ with torch.no_grad():  # Disable gradient calculation for faster inference
 
 
 # %%
-
+#save the trained model 
 torch.save({
     'model_state_dict': model.state_dict(),
     'optimizer_state_dict': optimizer.state_dict(),
-}, 'cbam_AdaIN_SSIM=1_StyleScale=10(3).pth')
+}, 'newSSIMTEST.pth')
 
 
 
