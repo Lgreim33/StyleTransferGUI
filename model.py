@@ -75,17 +75,16 @@ Original: https://github.com/xunhuang1995/AdaIN-style/blob/master/lib/AdaptiveIn
 When I say "Original," I'm reffering to the code that the authors of the paper that this is based of wrote for their paper
 '''
 
-
-def calc_mean_std(feat, eps=1e-5):
+@torch.jit.script
+def calc_mean_std(feat, eps: float = 1e-5):
     # eps is a small value added to the variance to avoid divide-by-zero.
     size = feat.size()
-    assert (len(size) == 4)
     N, C = size[:2]
     feat_var = feat.view(N, C, -1).var(dim=2) + eps
     feat_std = feat_var.sqrt().view(N, C, 1, 1)
     feat_mean = feat.view(N, C, -1).mean(dim=2).view(N, C, 1, 1)
     return feat_mean, feat_std
-
+@torch.jit.script
 def mean_variance_norm(feat):
     size = feat.size()
     mean, std = calc_mean_std(feat)
@@ -93,9 +92,8 @@ def mean_variance_norm(feat):
     return normalized_feat
 
 
-
+@torch.jit.script
 def AdaIn(content_feat, style_feat):
-    assert (content_feat.size()[:2] == style_feat.size()[:2])
     size = content_feat.size()
     style_mean, style_std = calc_mean_std(style_feat)
     content_mean, content_std = calc_mean_std(content_feat)
@@ -103,6 +101,16 @@ def AdaIn(content_feat, style_feat):
     normalized_feat = (content_feat - content_mean.expand(
         size)) / content_std.expand(size)
     return normalized_feat * style_std.expand(size) + style_mean.expand(size)
+
+# Wrapper class for AdaIN, so its compatible with torch scripting
+class ADAIN(nn.Module):
+    def __init__(self):
+        super(ADAIN,self).__init__()
+
+
+    def forward(self,content: torch.Tensor,style: torch.Tensor):
+        return AdaIn(content,style)
+
 
 
 '''
@@ -144,7 +152,7 @@ class ChannelGate(nn.Module):
             )
         self.pool_types = pool_types
     def forward(self, x):
-        channel_att_sum = None
+        channel_att_sum = torch.zeros(x.size(0), self.gate_channels, dtype=x.dtype, device=x.device)
         for pool_type in self.pool_types:
             if pool_type=='avg':
                 avg_pool = F.avg_pool2d( x, (x.size(2), x.size(3)), stride=(x.size(2), x.size(3)))
@@ -155,15 +163,13 @@ class ChannelGate(nn.Module):
             elif pool_type=='lp':
                 lp_pool = F.lp_pool2d( x, 2, (x.size(2), x.size(3)), stride=(x.size(2), x.size(3)))
                 channel_att_raw = self.mlp( lp_pool )
-            elif pool_type=='lse':
+            else:
                 # LSE pool only
                 lse_pool = logsumexp_2d(x)
                 channel_att_raw = self.mlp( lse_pool )
 
-            if channel_att_sum is None:
-                channel_att_sum = channel_att_raw
-            else:
-                channel_att_sum = channel_att_sum + channel_att_raw
+
+            channel_att_sum = channel_att_sum + channel_att_raw
 
         scale = F.sigmoid( channel_att_sum ).unsqueeze(2).unsqueeze(3).expand_as(x)
         return x * scale
@@ -289,6 +295,7 @@ class StyleTransferModel(nn.Module):
         self.encoder = Encoder().eval()
         self.cbam = CBAM(512)
         self.decoder = Decoder() 
+        self.ADAIN = ADAIN()
 
         #alpha can be altered to adjust style application strength post training (0-1)
         self.alpha = 1.0
@@ -312,7 +319,7 @@ class StyleTransferModel(nn.Module):
         attention_boosted_4_1 = content_feat4_1+attention4_1
 
         # Perform adaptive instance normalization with to fuse style into content
-        fused_feat4_1 = AdaIn(attention_boosted_4_1,style_feat4_1)
+        fused_feat4_1 = self.ADAIN(attention_boosted_4_1,style_feat4_1)
 
         # Just scales the degree of which the style is applied, if one it remains the same
         fused_feat4_1 = self.alpha * fused_feat4_1 + (1 - self.alpha) * content_feat4_1
