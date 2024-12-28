@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="3a93ac79-5bfc-4b6d-b29f-83384d81420a" name="Changes" comment="Initial Commit, the model --prototype pipeline works, file --select for GUI is in a --preliminary state">
+      <change beforePath="$PROJECT_DIR$/StyleTransfer" beforeDir="false" afterPath="$PROJECT_DIR$/StyleTransfer" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/org/app/transferGUI.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/app/transferGUI.java" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Class" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="RESET_MODE" value="HARD" />
+    <option name="ROOT_SYNC" value="SYNC" />
+  </component>
+  <component name="KubernetesApiPersistence">{}</component>
+  <component name="KubernetesApiProvider">{
+  &quot;isMigrated&quot;: true
+}</component>
+  <component name="MacroExpansionManager">
+    <option name="directoryName" value="g28jtpfz" />
+  </component>
+  <component name="MavenImportPreferences">
+    <option name="generalSettings">
+      <MavenGeneralSettings>
+        <option name="workOffline" value="true" />
+      </MavenGeneralSettings>
+    </option>
+  </component>
+  <component name="ProblemsViewState">
+    <option name="selectedTabId" value="CurrentFile" />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 8
+}</component>
+  <component name="ProjectId" id="2qD6qF0GsLkh8SMxgDpyYUknhnO" />
+  <component name="ProjectLevelVcsManager" settingsEditedManually="true" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;Application.Main.executor&quot;: &quot;Run&quot;,
+    &quot;Maven.StyleTransferGUI [clean,install].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.StyleTransferGUI [clean].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.StyleTransferGUI [compile,exec:java].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.StyleTransferGUI [compile].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.StyleTransferGUI [dependency:,tree].executor&quot;: &quot;Run&quot;,
+    &quot;Maven.StyleTransferGUI [exec:java...].executor&quot;: &quot;Run&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/lgrei/IdeaProject/StyleTransferGUI&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;project.structure.last.edited&quot;: &quot;Project&quot;,
+    &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
+    &quot;project.structure.side.proportion&quot;: &quot;0.2&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;preferences.lookFeel&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
+  }
+}</component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\lgrei\IdeaProject\StyleTransferGUI\src\Model" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\lgrei\IdeaProject\StyleTransferGUI\Model Training" />
+      <recent name="C:\Users\lgrei\IdeaProject\StyleTransferGUI\src\Model" />
+      <recent name="C:\Users\lgrei\IdeaProject\StyleTransferGUI\Content" />
+      <recent name="C:\Users\lgrei\IdeaProject\StyleTransferGUI\Style" />
+    </key>
+  </component>
+  <component name="RunAnythingCache">
+    <option name="myCommands">
+      <command value="mvn clean" />
+      <command value="mvn dependency: tree" />
+      <command value="mvn exec:java -Dexec.mainClass=&quot;main.java.org.example.Main&quot;" />
+      <command value="mvn exec:java -Dexec.mainClass=&quot;org.example.Main&quot;" />
+      <command value="mvn compile exec:java" />
+      <command value="mvn compile" />
+      <command value="mvn clean install" />
+    </option>
+  </component>
+  <component name="RunManager">
+    <configuration name="Main" type="Application" factoryName="Application" nameIsGenerated="true">
+      <option name="ALTERNATIVE_JRE_PATH" value="11" />
+      <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+      <option name="MAIN_CLASS_NAME" value="org.app.Main" />
+      <module name="StyleTransferGUI" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="org.app.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-9823dce3aa75-28b599e66164-intellij.indexing.shared.core-IU-242.23726.103" />
+        <option value="bundled-js-predefined-d6986cc7102b-5c90d61e3bab-JavaScript-IU-242.23726.103" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="3a93ac79-5bfc-4b6d-b29f-83384d81420a" name="Changes" comment="" />
+      <created>1734184989716</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1734184989716</updated>
+      <workItem from="1734184990757" duration="14410000" />
+      <workItem from="1734270698194" duration="15908000" />
+      <workItem from="1734443745362" duration="1353000" />
+      <workItem from="1734552456690" duration="13686000" />
+      <workItem from="1734612255733" duration="4612000" />
+      <workItem from="1734811363569" duration="1052000" />
+      <workItem from="1734898054343" duration="2330000" />
+      <workItem from="1734900417066" duration="27000" />
+      <workItem from="1734900451519" duration="175000" />
+      <workItem from="1734900635194" duration="494000" />
+      <workItem from="1734901263240" duration="686000" />
+      <workItem from="1734901984173" duration="415000" />
+      <workItem from="1734902409653" duration="1920000" />
+    </task>
+    <task id="LOCAL-00001" summary="Initial Commit, the model --prototype pipeline works, file --select for GUI is in a --preliminary state">
+      <option name="closed" value="true" />
+      <created>1734612532233</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1734612532233</updated>
+    </task>
+    <option name="localTasksCounter" value="2" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="OPEN_GENERIC_TABS">
+      <map>
+        <entry key="e23de110-5028-47ff-8fc2-d8ae91252dde" value="TOOL_WINDOW" />
+      </map>
+    </option>
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State>
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="origin/main" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+            </State>
+          </value>
+        </entry>
+        <entry key="e23de110-5028-47ff-8fc2-d8ae91252dde">
+          <value>
+            <State>
+              <option name="FILTERS">
+                <map>
+                  <entry key="branch">
+                    <value>
+                      <list>
+                        <option value="HEAD" />
+                      </list>
+                    </value>
+                  </entry>
+                  <entry key="roots">
+                    <value>
+                      <list>
+                        <option value="$PROJECT_DIR$" />
+                      </list>
+                    </value>
+                  </entry>
+                </map>
+              </option>
+              <option name="SHOW_ONLY_AFFECTED_CHANGES" value="true" />
+            </State>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="Initial Commit, the model prototype pipeline works, file select for GUI is in a preliminary state" />
+    <MESSAGE value="Initial Commit, the model --prototype pipeline works, file --select for GUI is in a --preliminary state" />
+    <option name="LAST_COMMIT_MESSAGE" value="Initial Commit, the model --prototype pipeline works, file --select for GUI is in a --preliminary state" />
+  </component>
+</project>

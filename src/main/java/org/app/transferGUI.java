@@ -36,9 +36,14 @@ public class transferGUI extends JFrame {
         JButton styleButton = new JButton("Select Content");
         styleButton.addActionListener(fs);
 
+        JButton transferButton = new JButton("Transfer! ");
+        transferButton.setEnabled(false);
+
 
         buttonPanel.add(contentButton);
         buttonPanel.add(styleButton);
+        buttonPanel.add(transferButton);
+
 
         add(buttonPanel, gbc);
 
