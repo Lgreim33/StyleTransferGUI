@@ -6,15 +6,17 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 
-public class FileSelect extends JFrame implements ActionListener {
+public class FileSelect{
 
+    Boolean fileSelected = false;
+    File selectedFile = null;
 
     FileSelect() {
 
     }
 
 
-    public void actionPerformed(ActionEvent evt){
+    public void openFileSelect(){
 
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
@@ -31,7 +33,8 @@ public class FileSelect extends JFrame implements ActionListener {
 
         if (result == JFileChooser.APPROVE_OPTION)
         {
-            System.out.println(fs.getSelectedFile());
+            this.fileSelected = true;
+            selectedFile = fs.getSelectedFile();
         }
 
     }

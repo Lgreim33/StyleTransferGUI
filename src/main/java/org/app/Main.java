@@ -18,10 +18,7 @@ import java.nio.file.Paths;
 public class Main {
     public static void main(String[] args) {
 
-        Transfer transferMod = new Transfer();
-        NDArray result = transferMod.stylize();
-
-
+        // Instantiate the GUI
         transferGUI gui = new transferGUI();
 
 

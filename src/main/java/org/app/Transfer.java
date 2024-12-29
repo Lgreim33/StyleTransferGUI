@@ -7,22 +7,23 @@ import ai.djl.modality.cv.*;
 import ai.djl.ndarray.types.DataType;
 import ai.djl.translate.*;
 
+import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
 public class Transfer {
-    Model model;
+    Model model = null;
 
     Transfer() {
         Path modelDir = Paths.get("src/Model/");
 
 
         try {
-            Model model = Model.newInstance("model");
+            this.model = Model.newInstance("model");
 
             try {
-                model.load(modelDir);
+                this.model.load(modelDir);
             } catch (Exception ex) {
                 System.out.println("Could not load model");
             }
@@ -33,21 +34,18 @@ public class Transfer {
     }
 
 
-    NDArray stylize() {
+    NDArray stylize(File contentFile, File styleFile) {
 
         try (Predictor<NDList, NDList> predictor = this.model.newPredictor(new NoopTranslator())) {
 
-            // Prepare your input as an NDArray. For example:
-
-
-            Image styleImage = ImageFactory.getInstance().fromFile(Paths.get("Style/style_example.jpg")).resize(512, 512, true);
-            ;
+            // Process the Style image
+            Image styleImage = ImageFactory.getInstance().fromFile(Paths.get(styleFile.toString())).resize(512, 512, true);
             NDArray style = styleImage.toNDArray(this.model.getNDManager()).toType(DataType.FLOAT32, false).div(255f);
             style = style.expandDims(0);
             style = style.transpose(0, 3, 1, 2);
 
-
-            Image contentImage = ImageFactory.getInstance().fromFile(Paths.get("Content/IMG_8405.jpeg")).resize(512, 512, true);
+            // Process the content image
+            Image contentImage = ImageFactory.getInstance().fromFile(Paths.get(contentFile.toString())).resize(512, 512, true);
             NDArray content = contentImage.toNDArray(model.getNDManager()).toType(DataType.FLOAT32, false).div(255f);
             content = content.expandDims(0);
             content = content.transpose(0, 3, 1, 2);
@@ -71,6 +69,7 @@ public class Transfer {
             return result;
 
         } catch (Exception e) {
+            System.out.println("Could not load");
             e.printStackTrace();
 
         }

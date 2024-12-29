@@ -27,18 +27,21 @@ public class transferGUI extends JFrame {
         // Create a panel with FlowLayout to place the buttons side by side.
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 0));
 
-        FileSelect fs = new FileSelect();
+        FileSelect fs_content = new FileSelect();
+        FileSelect fs_style = new FileSelect();
 
 
-        JButton contentButton = new JButton("Select Style");
-        contentButton.addActionListener(fs);
+        JButton contentButton = new JButton("Select Content");
+        //contentButton.addActionListener(fs_content);
 
-        JButton styleButton = new JButton("Select Content");
-        styleButton.addActionListener(fs);
+        JButton styleButton = new JButton("Select Style");
+        //styleButton.addActionListener(fs_style);
 
-        JButton transferButton = new JButton("Transfer! ");
+        JButton transferButton = new JButton("Transfer!");
         transferButton.setEnabled(false);
 
+        // controller
+        FileSelectSystem fs_system = new FileSelectSystem(contentButton,styleButton,transferButton);
 
         buttonPanel.add(contentButton);
         buttonPanel.add(styleButton);
@@ -48,6 +51,8 @@ public class transferGUI extends JFrame {
         add(buttonPanel, gbc);
 
         setVisible(true);
+
+
 
 
 
