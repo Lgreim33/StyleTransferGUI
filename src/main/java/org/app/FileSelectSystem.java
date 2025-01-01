@@ -3,6 +3,7 @@ package org.app;
 import ai.djl.ndarray.NDArray;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 
 public class FileSelectSystem  {
@@ -12,14 +13,21 @@ public class FileSelectSystem  {
     JButton styleButton;
     JButton transfer;
 
+    JLabel contentImage;
+    JLabel styleImage;
+
     FileSelect styleSelector;
     FileSelect contentSelector;
 
     // Constructor
-    FileSelectSystem(JButton contentButton,JButton styleButton, JButton transferButton) {
+    FileSelectSystem(JButton contentButton,JButton styleButton, JButton transferButton,JLabel contentLabel,JLabel styleLabel) {
         this.contentButton = contentButton;
         this.styleButton = styleButton;
         this.transfer = transferButton;
+
+        this.contentImage = contentLabel;
+        this.styleImage = styleLabel;
+
         this.styleSelector = new FileSelect();
         this.contentSelector = new FileSelect();
 
@@ -32,11 +40,17 @@ public class FileSelectSystem  {
 
     void onContentClick(){
         this.contentSelector.openFileSelect();
+        Image rawImage = new ImageIcon(contentSelector.selectedFile.toString()).getImage();
+        Image scaledImage = rawImage.getScaledInstance(40,40,  java.awt.Image.SCALE_SMOOTH);
+        this.contentImage.setIcon(new ImageIcon(scaledImage));
         bothButtonsClicked();
     }
     //
     void onStyleClick(){
         this.styleSelector.openFileSelect();
+        Image rawImage = new ImageIcon(styleSelector.selectedFile.toString()).getImage();
+        Image scaledImage = rawImage.getScaledInstance(40,40,  java.awt.Image.SCALE_SMOOTH);
+        this.styleImage.setIcon(new ImageIcon(scaledImage));
         bothButtonsClicked();
     }
 
