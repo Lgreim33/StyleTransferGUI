@@ -5,11 +5,8 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="3a93ac79-5bfc-4b6d-b29f-83384d81420a" name="Changes" comment="Initial Commit, the model --prototype pipeline works, file --select for GUI is in a --preliminary state">
-      <change beforePath="$PROJECT_DIR$/.idea/vcs.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/output.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/org/app/FileSelect.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/app/FileSelect.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main/java/org/app/Main.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/app/Main.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/output.jpg" beforeDir="false" afterPath="$PROJECT_DIR$/output.jpg" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/org/app/Transfer.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/app/Transfer.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main/java/org/app/transferGUI.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/main/java/org/app/transferGUI.java" afterDir="false" />
     </list>
@@ -150,7 +147,9 @@
       <workItem from="1734901984173" duration="415000" />
       <workItem from="1734902409653" duration="1920000" />
       <workItem from="1735413657877" duration="3569000" />
-      <workItem from="1735510406281" duration="4886000" />
+      <workItem from="1735510406281" duration="6628000" />
+      <workItem from="1735712750878" duration="812000" />
+      <workItem from="1735745836203" duration="1030000" />
     </task>
     <task id="LOCAL-00001" summary="Initial Commit, the model --prototype pipeline works, file --select for GUI is in a --preliminary state">
       <option name="closed" value="true" />

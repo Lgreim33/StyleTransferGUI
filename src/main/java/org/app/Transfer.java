@@ -69,7 +69,7 @@ public class Transfer {
             return result;
 
         } catch (Exception e) {
-            System.out.println("Could not load");
+            System.out.println("Could not create new predictor");
             e.printStackTrace();
 
         }
